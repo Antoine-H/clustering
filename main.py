@@ -36,19 +36,19 @@ def bound(graph, comp):
     
     while v1 != v1_prev:
     
-        print (v1, v1_prev)
+        #print (v1, v1_prev)
         for v2 in graph:
             dist = math.sqrt((v2[2]-v1[2]) ** 2
                            + (v2[1]-v1[1]) ** 2)
             # Unlucky if bnd starts better than all dists
             if comp(dist,bnd) and v1 != v2:
-                print(bnd, dist)
+                #print(bnd, dist)
                 bnd   = dist
                 vnext = v2
     
         v1_prev = v1
         v1      = vnext
-    print(v1,v1_prev)
+    #print(v1,v1_prev)
 
     return bnd
 
@@ -57,7 +57,7 @@ def bound(graph, comp):
 
 tweets=read_tweets("dataset/twitter_1000000.txt")
 
-dmax=[]
+dmax=bound(tweets, operator.gt)
 for i in range(5):
     dmax=max(dmax,bound(tweets, operator.gt))
 
