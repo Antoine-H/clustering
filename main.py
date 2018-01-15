@@ -33,9 +33,9 @@ def bound(graph, comp):
     # Init vnext if we get the bound at first try
     vnext   = [0.0, 0.0, 0.0]
     v2      = [0.0, 0.0, 0.0]
-    
+
     while v1 != v1_prev:
-    
+
         #print (v1, v1_prev)
         for v2 in graph:
             dist = math.sqrt((v2[2]-v1[2]) ** 2
@@ -45,7 +45,7 @@ def bound(graph, comp):
                 #print(bnd, dist)
                 bnd   = dist
                 vnext = v2
-    
+
         v1_prev = v1
         v1      = vnext
     #print(v1,v1_prev)
