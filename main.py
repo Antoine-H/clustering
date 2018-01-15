@@ -15,22 +15,27 @@ def read_tweets (file):
     return tweets
 
 
-# Compute bounds on set.
+# Compute distance between two tweets
+def tweet_dist(v1, v2):
+    return math.sqrt((v2[2] - v1[2]) ** 2
+                  + ((v2[1] - v1[1]) ** 2))
+
+
+# Compute bounds on a tweet set.
 # Start from a random tweet, compute the distance to the rest of the
 # tweets. Repeat from farthest/shortest tweet until we get the same
-# two tweets. Still quite heuristic...
+# two tweets. Still quite heuristic... O(n) randomized.
 def bound(graph, comp):
 
     i = random.sample(range(len(graph)),3)
 
     # Init bound
-    bnd = math.sqrt((graph[i[0]][2]-graph[i[1]][2]) ** 2
-                  + (graph[i[0]][1]-graph[i[1]][1]) ** 2)
+    bnd = tweet_dist(graph[i[0]], graph[i[1]])
 
     # Random starting point
     v1      = graph[i[2]]
     v1_prev = [0.0, 0.0, 0.0]
-    # Init vnext if we get the bound at first try
+    # Init vnext in case we get the bound at first try
     vnext   = [0.0, 0.0, 0.0]
     v2      = [0.0, 0.0, 0.0]
 
@@ -38,8 +43,7 @@ def bound(graph, comp):
 
         #print (v1, v1_prev)
         for v2 in graph:
-            dist = math.sqrt((v2[2]-v1[2]) ** 2
-                           + (v2[1]-v1[1]) ** 2)
+            dist = tweet_dist(v1,v2)
             # Unlucky if bnd starts better than all dists
             if comp(dist,bnd) and v1 != v2:
                 #print(bnd, dist)
@@ -52,18 +56,49 @@ def bound(graph, comp):
 
     return bnd
 
+# Computes the closest pair of points in a tweet set in O(n log n)
+# Misses closest pair each on one side of the median
+# Quite slow...
+def closest_pair_of_points (graph):
+    if len(graph) == 1:
+        # Arbitrary..
+        return 100
+    if len(graph) == 2:
+        return tweet_dist(graph[0], graph[1])
+    else:
+        sorted_lat  = graph.sort(key=operator.itemgetter(1))
+        sorted_long = graph.sort(key=operator.itemgetter(2))
+
+        median      = int(len(graph)/2)
+
+        #delta  = min(closest_pair_of_points(graph[median:]),
+        #             closest_pair_of_points(graph[:median]))
+
+        # Get the tweets within delta of the border
+        border = (graph[median:median+6]
+                + graph[median-6:median])
+
+        # Distance to median
+        def cmp (v1, v2):
+            return (tweet_dist (graph[median], v1)
+                  - tweet_dist (graph[median], v2))
+
+    return min(closest_pair_of_points(graph[median:]),
+               closest_pair_of_points(graph[:median]))
+
+
 
 # Main
 
 tweets=read_tweets("dataset/twitter_1000000.txt")
 
 dmax=bound(tweets, operator.gt)
-for i in range(5):
-    dmax=max(dmax,bound(tweets, operator.gt))
+dmin=bound(tweets, operator.lt)
+#for i in range(2):
+#    dmax=max(dmax,bound(tweets, operator.gt))
 
-dmin = bound(tweets, operator.lt)
+#dmin = closest_pair_of_points(tweets)
 
 print(dmax)
-# min gets stuck in local optimums
 print(dmin)
 
