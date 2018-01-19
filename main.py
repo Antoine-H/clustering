@@ -1,3 +1,10 @@
+
+#
+# Implementation of a 2-approximation algorithm for the fully dynamic k-center
+# clustering problem.
+# From https://sites.google.com/site/maurosozio/techReport.pdf
+#
+
 import random
 import operator
 import math
@@ -8,10 +15,7 @@ def read_tweets (file):
     tweets=[]
     with open(file) as input:
         for line in input:
-            tweet=line.split()
-            for i in range(len(tweet)):
-                tweet[i] = float(tweet[i])
-            tweets.append(tweet)
+            tweets.append([float(x) for x in line.split()])
     return tweets
 
 
@@ -27,13 +31,13 @@ def tweet_dist(v1, v2):
 # two tweets. Still quite heuristic... Maybe sufficient. O(n) randomized.
 def bound(graph, comp):
 
-    i = random.sample(range(len(graph)),3)
+    rand_nodes = [graph[i] for i in random.sample(range(len(graph)),3)]
 
     # Initial bound.
-    bnd = tweet_dist(graph[i[0]], graph[i[1]])
+    bnd = tweet_dist(rand_nodes[0], rand_nodes[1])
 
     # Random starting point.
-    v1      = graph[i[2]]
+    v1      = rand_nodes[2]
     v1_prev = [0.0, 0.0, 0.0]
     # Initialise vnext in case we get the bound at first try.
     vnext   = [0.0, 0.0, 0.0]
@@ -58,7 +62,8 @@ def bound(graph, comp):
 
 # Computes the closest pair of points in a tweet set in O(n log n).
 # Misses closest pair each on one side of the median
-# Quite slow...
+# From https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
+# Quite slow... NOT DONE YET
 def closest_pair_of_points (graph):
     if len(graph) == 1:
         # Arbitrary..
@@ -87,18 +92,54 @@ def closest_pair_of_points (graph):
                closest_pair_of_points(graph[:median]))
 
 
+# Initial cluster
+# Can't build cluster, point too far it seems
+def clustering (graph, k, dmin, dmax):
+    for beta in range(int(dmax-dmin)):
+        # Picks k centers
+        centers = [graph[i] for i in random.sample(range(len(graph)),k)]
+        graph2  = graph[:]
+        clusters = []
+        for center in centers:
+            # Adds all point whose dist < dmax
+            #print(center)
+            # clusters.append([graph2.pop(graph2.index(x))
+            #                 for x in graph2 if tweet_dist(center,x) < beta])
+            cluster = []
+            for x in graph2:
+                if tweet_dist(center, x) < beta:
+                    cluster.append(x)
+                    graph2.remove(x)
+            clusters.append(cluster)
+        #if (len(graph) == sum(len(x) for x in clusters)):
+        #print(beta)
+        #print(len(graph2))
+        #print(graph2)
+        #print(sum(len(x) for x in clusters))
+        if (not len(graph2)):
+            return clusters
+        if (len(graph) < sum(len(x) for x in clusters)):
+            raise AssertionError()
+        #print(beta)
+        #print("centers")
+        #print(centers)
+        #print("clusters")
+        #print(clusters)
+    raise AssertionError()
+    return 0
 
 # Main
 
-tweets=read_tweets("dataset/twitter_1000000.txt")
+tweets=read_tweets("dataset/twitter_1000000.txt2")
 
-dmax=bound(tweets, operator.gt)
 dmin=bound(tweets, operator.lt)
-#for i in range(2):
-#    dmax=max(dmax,bound(tweets, operator.gt))
+dmax=bound(tweets, operator.gt)
 
-#dmin = closest_pair_of_points(tweets)
-
-print(dmax)
 print(dmin)
+print(dmax)
+
+cluster = clustering(tweets, 10, dmin, dmax)
+print(cluster)
+print(sum(len(x) for x in cluster))
+
 
