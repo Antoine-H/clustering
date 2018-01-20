@@ -4,6 +4,8 @@
 # clustering problem.
 # From https://sites.google.com/site/maurosozio/techReport.pdf
 #
+# TODO : closest_pair_of_points
+#
 
 import random
 import operator
@@ -44,27 +46,24 @@ def bound(graph, comp):
     v2      = [0.0, 0.0, 0.0]
 
     while v1 != v1_prev:
-
-        #print (v1, v1_prev)
         for v2 in graph:
             dist = tweet_dist(v1,v2)
             # Unlucky if bnd starts better than all dists.
             if comp(dist,bnd) and v1 != v2:
-                #print(bnd, dist)
                 bnd   = dist
                 vnext = v2
-
         v1_prev = v1
         v1      = vnext
-    #print(v1,v1_prev)
 
     return bnd
 
+
 # Computes the closest pair of points in a tweet set in O(n log n).
-# Misses closest pair each on one side of the median
+# Misses closest pair each on one side of the median.
 # From https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-# Quite slow... NOT DONE YET
+# Quite slow... NOT DONE YET, point on each side of the border.
 def closest_pair_of_points (graph):
+
     if len(graph) == 1:
         # Arbitrary..
         return 100
@@ -92,54 +91,125 @@ def closest_pair_of_points (graph):
                closest_pair_of_points(graph[:median]))
 
 
-# Initial cluster
-# Can't build cluster, point too far it seems
-def clustering (graph, k, dmin, dmax):
-    for beta in range(int(dmax-dmin)):
-        # Picks k centers
-        centers = [graph[i] for i in random.sample(range(len(graph)),k)]
-        graph2  = graph[:]
-        clusters = []
+# Computes βs.
+def betas (dmin, dmax, epsilon):
+    n     = (1+epsilon)
+    betas = []
+    while n < dmax:
+        if n > dmin:
+            betas.append(n)
+        n = n * (1+epsilon)
+    return betas
+
+
+# Builds a cluster within 2β distance of a given center.
+def build_cluster (graph, beta, center):
+    cluster = [center]
+    for node in graph:
+        if tweet_dist(center, node) < 2 * beta:
+            cluster.append(node)
+    return cluster
+
+
+# Initial cluster.
+# Build clusters out of random centers.
+def clustering (graph, k, betas):
+
+    result = []
+    for beta in betas:
+        centers     = []
+        clusters    = []
+        unclustered = graph[:]
+        nb_centers  = 1
+
+        while nb_centers < k and len(unclustered):
+
+            centers.append(random.choice(unclustered))
+            unclustered.remove(centers[-1])
+            clusters.append(build_cluster(unclustered, beta, centers[-1]))
+
+            unclustered = [x for x in unclustered if x not in clusters[-1]]
+            nb_centers += 1
+
+        result.append([centers,clusters,unclustered,beta])
+    return result
+
+
+# Insterts a point in an existing cluster if possible, otherwise as a new
+# center, otherwise as an unclustered point.
+def pointInsertion(L, k, point):
+    for i in range(len(L)):
+        centers     = L[i][0]
+        clusters    = L[i][1]
+        unclustered = L[i][2]
+        beta        = L[i][3]
+        done        = False
+
+        # Inserts in an existing cluster.
         for center in centers:
-            # Adds all point whose dist < dmax
-            #print(center)
-            # clusters.append([graph2.pop(graph2.index(x))
-            #                 for x in graph2 if tweet_dist(center,x) < beta])
-            cluster = []
-            for x in graph2:
-                if tweet_dist(center, x) < beta:
-                    cluster.append(x)
-                    graph2.remove(x)
-            clusters.append(cluster)
-        #if (len(graph) == sum(len(x) for x in clusters)):
-        #print(beta)
-        #print(len(graph2))
-        #print(graph2)
-        #print(sum(len(x) for x in clusters))
-        if (not len(graph2)):
-            return clusters
-        if (len(graph) < sum(len(x) for x in clusters)):
-            raise AssertionError()
-        #print(beta)
-        #print("centers")
-        #print(centers)
-        #print("clusters")
-        #print(clusters)
-    raise AssertionError()
-    return 0
+            if tweet_dist (point, center) < 2 * beta:
+                i = centers.index(center)
+                clusters[i].append(point)
+                done = True
+        # Inserts as a new center.
+        if len(centers) < k and not done:
+            centers.append(point)
+            clusters.append(build_cluster(unclustered, beta, centers[-1]))
+        elif not done:
+            unclustered.append(point)
+    return L
+
+
+# Flattens a list of lists into a list
+def flatten (lls): return [l for ls in lls for l in ls]
+
+# Deletes a point. If it isn't a center, just deletes it, otherwise reclusters.
+def pointDeletion(L, k, point):
+    for i in range(len(L)):
+        centers     = L[i][0]
+        clusters    = L[i][1]
+        unclustered = L[i][2]
+        beta        = L[i][3]
+
+        if point in flatten(clusters) and point not in centers:
+            for cluster in clusters:
+                if point in cluster:
+                    cluster.remove(point)
+        elif point in unclustered:
+            unclustered.remove(point)
+        elif point in centers:
+
+            j        = centers.index(point)
+            new_uncl = flatten(clusters[j:]) + unclustered
+            new_uncl.remove(point)
+            tmp      = clustering (new_uncl, k-j+1, [beta])
+
+            del centers  [j:]
+            del clusters [j:]
+
+            centers    += tmp[0][0]
+            clusters   += tmp[0][1]
+            unclustered = tmp[0][2]
+    return L
+
+
+def get_solution (L):
+    for x in L:
+        if not x[2]:
+            return x
+
 
 # Main
 
-tweets=read_tweets("dataset/twitter_1000000.txt2")
+tweets = read_tweets("dataset/twitter_1000000.txt")
 
-dmin=bound(tweets, operator.lt)
-dmax=bound(tweets, operator.gt)
+#dmin  = closest_pair_of_points(tweets)
+dmin   = bound(tweets, operator.lt)
+dmax   = bound(tweets, operator.gt)
 
-print(dmin)
-print(dmax)
+L      = clustering(tweets, 4, betas(dmin, dmax, 0.5))
 
-cluster = clustering(tweets, 10, dmin, dmax)
-print(cluster)
-print(sum(len(x) for x in cluster))
+print(L)
 
+L = pointDeletion(L,4,[1504866209.0, 12.3267, 45.4386])
 
