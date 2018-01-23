@@ -5,6 +5,7 @@
 # From https://sites.google.com/site/maurosozio/techReport.pdf
 #
 # TODO : closest_pair_of_points
+#        change lists to dictionnaries
 #
 
 import random
