@@ -155,28 +155,6 @@ def pointInsertion (L, k, point):
                 j = get_cluster(clusters, center)
                 clusters[j].add(point)
                 done = True
-            # Recomputes bounds.
-            #if dist > dmax or dist < dmin:
-            #    def rebound(dist, L):
-            #        global dmax
-            #        global dmin
-            #        global epsilon
-            #        global k
-            #        if dist > dmax:
-            #            dmax = dist
-            #            lbeta = betas(dmin,dmax,epsilon)
-            #            if len(L) != len(lbeta):
-            #                tmp = set(c for c in clusters)#.union(unclustered)
-            #                print(tmp)
-            #                L.append(clustering(list(tmp),k,[lbeta[len(lbeta)-len(L):]]))
-            #        elif dmin < dist:
-            #            dmin = dist
-            #            lbeta = betas(dmin,dmax,epsilon)
-            #            if len(L) != len(lbeta):
-            #                tmp = set(c for c in clusters).union(unclustered)
-            #                L.append(clustering(list(tmp)),k,[lbeta[:len(lbeta)-len(L)]])
-            #                L.sort(key=lambda l: l[3])
-            #    L = rebound(dist,L)
         # Or as a new center.
         if len(centers) < k and not done:
             centers.add(point)
@@ -245,11 +223,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("[*] python3 main.py k epsilon window")
         sys.exit()
-    global k
-    global epsilon
-    global window
-    global dmin
-    global dmax
 
     k       = int(sys.argv[1])
     epsilon = float(sys.argv[2])
